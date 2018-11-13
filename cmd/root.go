@@ -1,89 +1,90 @@
-// Copyright © 2018 NAME HERE <EMAIL ADDRESS>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-var cfgFile string
+const version = "0.1"
+const songsFile = "songs.txt"
+const assetFile = "music.asset"
 
-// rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "eu4-songs-gen",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+	Use:   "eu4-songs-gen [path to .ogg files]",
+	Short: "Generate EU4 songs.txt from .ogg files",
+	Long: `Europa Universalis IV - Song List Generator
+This command enables you to add your own song list to EU4
+by generating songs.txt from local .ogg files.`,
+	Version: version,
+	Args:    cobra.MaximumNArgs(1),
+	Run:     run,
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
+func init() {
+	rootCmd.SetVersionTemplate(fmt.Sprintf("EU4 Song List Generator %s\n", rootCmd.Version))
+}
+
+func run(cmd *cobra.Command, args []string) {
+	dir := "."
+	if len(args) > 0 {
+		dir = args[0]
+	}
+
+	entries, err := ioutil.ReadDir(dir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v", err)
+		os.Exit(1)
+	}
+
+	songs := ""
+	asset := ""
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".ogg") {
+			songs += fmt.Sprintf(`
+song = {
+	name = "%v"
+	
+	chance = {
+		modifier = {
+			factor = 1
+		}
+	}
+}
+`, strings.TrimSuffix(entry.Name(), ".ogg"))
+			asset += fmt.Sprintf(`
+music = {
+	name = "%v"
+	file = "%v"
+}`, strings.TrimSuffix(entry.Name(), ".ogg"), entry.Name())
+		}
+	}
+
+	if songs == "" {
+		fmt.Printf("No .ogg files found at %v\n", dir)
+		return
+	}
+
+	songsPath := filepath.Join(dir, songsFile)
+	ioutil.WriteFile(songsPath, []byte(songs), 0775)
+	assetPath := filepath.Join(dir, assetFile)
+	ioutil.WriteFile(assetPath, []byte(asset), 0775)
+
+	fmt.Printf(`Following output files generated:
+  %v
+  %v
+Add the contents to the original EU4 music/songs.txt and music/music.asset files.
+`, songsPath, assetPath)
+}
+
+// Execute runs root command.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
-	}
-}
-
-func init() {
-	cobra.OnInitialize(initConfig)
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.eu4-songs-gen.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-}
-
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := homedir.Dir()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		// Search config in home directory with name ".eu4-songs-gen" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".eu4-songs-gen")
-	}
-
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
 }
