@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.2"
+const version = "0.3"
 
 const songsFile = "songs.txt"
 const assetFile = "music.asset"
@@ -104,6 +104,7 @@ func run(cmd *cobra.Command, args []string) {
 	fmt.Printf(`Following output files generated:
   %v
   %v
+
 Add the contents to the original EU4 music/songs.txt and music/music.asset files.
 `, songsPath, assetPath)
 }

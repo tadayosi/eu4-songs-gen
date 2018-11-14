@@ -1,2 +1,6 @@
+/eu4-songs-gen
+
 .*
-eu4-songs-gen
+*.out
+
+vendor/
