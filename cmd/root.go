@@ -10,9 +10,38 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.1"
+const version = "0.2"
+
 const songsFile = "songs.txt"
 const assetFile = "music.asset"
+
+const songTemplate = `
+song = {
+	name = "%v"
+	
+	chance = {
+%v
+	}
+}
+`
+const modifierTemplate = `		modifier = {
+			factor = %v
+		}`
+const modifierWarTemplate = `		modifier = {
+			factor = %v
+			is_at_war = %v
+		}`
+const assetTemplate = `
+music = {
+	name = "%v"
+	file = "%v"
+}`
+
+// Factor modifier (default: 1)
+var Factor = "1"
+
+// War modifier (default: "")
+var War = ""
 
 var rootCmd = &cobra.Command{
 	Use:   "eu4-songs-gen [path to .ogg files]",
@@ -27,6 +56,8 @@ by generating songs.txt from local .ogg files.`,
 
 func init() {
 	rootCmd.SetVersionTemplate(fmt.Sprintf("EU4 Song List Generator %s\n", rootCmd.Version))
+	rootCmd.Flags().StringVarP(&Factor, "factor", "f", "1", "'factor' modifier to set")
+	rootCmd.Flags().StringVarP(&War, "war", "w", "", "'is_at_war' modifier to set (yes / no)")
 }
 
 func run(cmd *cobra.Command, args []string) {
@@ -45,22 +76,18 @@ func run(cmd *cobra.Command, args []string) {
 	asset := ""
 	for _, entry := range entries {
 		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".ogg") {
-			songs += fmt.Sprintf(`
-song = {
-	name = "%v"
-	
-	chance = {
-		modifier = {
-			factor = 1
-		}
-	}
-}
-`, strings.TrimSuffix(entry.Name(), ".ogg"))
-			asset += fmt.Sprintf(`
-music = {
-	name = "%v"
-	file = "%v"
-}`, strings.TrimSuffix(entry.Name(), ".ogg"), entry.Name())
+			modifier := ""
+			if War == "" {
+				modifier = fmt.Sprintf(modifierTemplate, Factor)
+			} else {
+				modifier = fmt.Sprintf(modifierWarTemplate, Factor, War)
+			}
+			songs += fmt.Sprintf(songTemplate,
+				strings.TrimSuffix(entry.Name(), ".ogg"),
+				modifier)
+			asset += fmt.Sprintf(assetTemplate,
+				strings.TrimSuffix(entry.Name(), ".ogg"),
+				entry.Name())
 		}
 	}
 
