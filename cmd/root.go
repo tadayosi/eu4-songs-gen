@@ -58,8 +58,8 @@ by generating songs.txt from local .ogg files.`,
 
 func init() {
 	rootCmd.SetVersionTemplate(fmt.Sprintf("EU4 Song List Generator %s\n", rootCmd.Version))
-	rootCmd.Flags().StringVarP(&Factor, "factor", "f", "1", "'factor' modifier to set")
-	rootCmd.Flags().StringVarP(&War, "war", "w", "", "'is_at_war' modifier to set (yes / no)")
+	rootCmd.Flags().StringVarP(&Factor, "factor", "f", "1", "global 'factor' modifier to set")
+	rootCmd.Flags().StringVarP(&War, "war", "w", "", "global 'is_at_war' modifier to set (yes / no)")
 }
 
 func run(cmd *cobra.Command, args []string) {
