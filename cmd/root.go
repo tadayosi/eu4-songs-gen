@@ -12,8 +12,10 @@ import (
 
 const version = "0.3"
 
-const songsFile = "songs.txt"
-const assetFile = "music.asset"
+const baseSongsFile = "songs.txt"
+const baseAssetFile = "music.asset"
+
+const warSuffix = "__war"
 
 const songTemplate = `
 song = {
@@ -74,20 +76,17 @@ func run(cmd *cobra.Command, args []string) {
 
 	songs := ""
 	asset := ""
-	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".ogg") {
+	for _, file := range entries {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".ogg") {
 			modifier := ""
-			if War == "" {
+			songName, atWar := songNameAndIsAtWar(strings.TrimSuffix(file.Name(), ".ogg"))
+			if atWar == "" {
 				modifier = fmt.Sprintf(modifierTemplate, Factor)
 			} else {
-				modifier = fmt.Sprintf(modifierWarTemplate, Factor, War)
+				modifier = fmt.Sprintf(modifierWarTemplate, Factor, atWar)
 			}
-			songs += fmt.Sprintf(songTemplate,
-				strings.TrimSuffix(entry.Name(), ".ogg"),
-				modifier)
-			asset += fmt.Sprintf(assetTemplate,
-				strings.TrimSuffix(entry.Name(), ".ogg"),
-				entry.Name())
+			songs += fmt.Sprintf(songTemplate, songName, modifier)
+			asset += fmt.Sprintf(assetTemplate, songName, file.Name())
 		}
 	}
 
@@ -96,9 +95,9 @@ func run(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	songsPath := filepath.Join(dir, songsFile)
+	songsPath := filepath.Join(dir, baseSongsFile)
 	ioutil.WriteFile(songsPath, []byte(songs), 0775)
-	assetPath := filepath.Join(dir, assetFile)
+	assetPath := filepath.Join(dir, baseAssetFile)
 	ioutil.WriteFile(assetPath, []byte(asset), 0775)
 
 	fmt.Printf(`Following output files generated:
@@ -107,6 +106,16 @@ func run(cmd *cobra.Command, args []string) {
 
 Add the contents to the original EU4 music/songs.txt and music/music.asset files.
 `, songsPath, assetPath)
+}
+
+func songNameAndIsAtWar(fileName string) (string, string) {
+	songName := fileName
+	atWar := War
+	if strings.HasSuffix(fileName, warSuffix) {
+		songName = strings.TrimSuffix(songName, warSuffix)
+		atWar = "yes"
+	}
+	return songName, atWar
 }
 
 // Execute runs root command.
