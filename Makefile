@@ -6,3 +6,6 @@ test:
 
 install:
 	go install
+
+dep:
+	dep ensure -v
