@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.3"
+const version = "0.3.0-dev"
 
 const baseSongsFile = "songs.txt"
 const baseAssetFile = "music.asset"
